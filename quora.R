@@ -516,4 +516,4 @@ write.csv(untrained_test, file = 'knn_solution.csv',row.names = F)
 rm(importance,rankImportance,xtab,accuracy,Conf_matrix,fit,i,data)
 save.image("untrained_test")
 load("untrained_test")
- 
+ #

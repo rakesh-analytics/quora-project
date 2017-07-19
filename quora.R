@@ -7,12 +7,11 @@ data = read.csv("train.csv", header = T , stringsAsFactors = F)
 # str(data)
 
 
-#sentiment Analysis
 library(stringr)
 library(tm)
 library(randomForest)
-library('dplyr')
-library("caret")
+library(dplyr)
+library(caret)
 library(ggplot2)
 library(ggthemes)
 library(wordcloud)
@@ -23,6 +22,7 @@ library(class)
 library(caret)
 library(gridExtra)
 library(stringi)
+
 
 
 #Calculating different string methods without preprocessing

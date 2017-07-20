@@ -8,19 +8,11 @@ data = read.csv("train.csv", header = T , stringsAsFactors = F)
 
 
 library(stringr)
-library(tm)
-library(randomForest)
 library(dplyr)
 library(caret)
-library(ggplot2)
-library(ggthemes)
-library(wordcloud)
-library(wordcloud2)
-library(stringdist)
 library(slam)
 library(class)
 library(caret)
-library(gridExtra)
 library(stringi)
 
 
@@ -78,8 +70,9 @@ preprocess = function(all_text){
 }
 
 
-
+library(stringdist)
 #Performing different methods on text
+
 ques_matrix = function(all_text){
         
         m = matrix(NA, nrow = nrow(all_text), ncol = 11)
@@ -124,6 +117,10 @@ ques_matrix = function(all_text){
 }
 
 
+library(wordcloud)
+library(wordcloud2)
+library(tm)
+
 #Word Cloud Function
 wc = function(text)
 {
@@ -143,21 +140,6 @@ wc = function(text)
         
         return(w)
         
-}
-
-#Plot Functions
-line = function(dat,X,Y,title,nameX,nameY){
-        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
-                geom_line(aes(color = 'red' ), stat='summary',fun.y=median) +
-                labs(x = nameX , y = nameY) + ggtitle(title)
-        return(l)
-}
-
-line2 = function(dat,X,Y,title,nameX,nameY){
-        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
-                geom_line(aes(color = is_duplicate ), stat='summary',fun.y=median) +
-                labs(x = nameX , y = nameY) + ggtitle(title)
-        return(l)
 }
 
 
@@ -197,6 +179,28 @@ sum(text_process$is_duplicate==1 & text_process$diff_length>10)/nrow(text_proces
 
 
 }
+
+
+library(ggplot2)
+library(ggthemes)
+library(gridExtra)
+
+#Plot Functions
+line = function(dat,X,Y,title,nameX,nameY){
+        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
+                geom_line(aes(color = 'red' ), stat='summary',fun.y=median) +
+                labs(x = nameX , y = nameY) + ggtitle(title)
+        return(l)
+}
+
+line2 = function(dat,X,Y,title,nameX,nameY){
+        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
+                geom_line(aes(color = is_duplicate ), stat='summary',fun.y=median) +
+                labs(x = nameX , y = nameY) + ggtitle(title)
+        return(l)
+}
+
+
 
 #All Plots
 {
@@ -318,6 +322,7 @@ test = text_process[!(1:nrow(text_process)) %in% as.numeric(row.names(train)), ]
 #Decision tree using C50 for classification
 #cannot used for regression
 library(C50)
+
 ruleModel = C5.0(is_duplicate ~ diff_length + dist + jw_meth +
                          cosine_meth + simi + lcs + jaccard, data = train)
 summary(ruleModel)
@@ -339,6 +344,7 @@ load("DT.rda")
 
 ##Decision tree using rpart for classification
 library(rpart)
+
 fit = rpart(is_duplicate ~ diff_length + dist + jw_meth +
                     cosine_meth + simi + lcs + jaccard, data = train, method = "class")
 pred = predict(fit, test[,-3], type = "class")
@@ -349,6 +355,8 @@ confusionMatrix(xtab)
 
 
 #Random Forest Model
+library(randomForest)
+
 rf_model <- randomForest(factor(is_duplicate) ~ diff_length + dist + jw_meth +
                                  cosine_meth + simi + lcs +jaccard, data = train, 
                          importance = TRUE ,  ntree = 100)

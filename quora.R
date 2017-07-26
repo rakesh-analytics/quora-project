@@ -3,21 +3,22 @@ rm(list = ls(all = TRUE))
 setwd("D:/rakesh/data science/Project/quora")
 
 #load data into R
-data = read.csv("train.csv", header = T , stringsAsFactors = F)
+data = read.csv("train.csv", header = T , stringsAsFactors = F)[1:1000,]
 # str(data)
 
 
 library(stringr)
+library(randomForest)
 library(dplyr)
 library(caret)
 library(slam)
 library(class)
-library(caret)
+
+
+
+#Text preprocessing
 library(stringi)
 
-
-
-#Calculating different string methods without preprocessing
 preprocess = function(all_text){
         
         #Converting all words to lower case
@@ -70,8 +71,9 @@ preprocess = function(all_text){
 }
 
 
-library(stringdist)
+
 #Performing different methods on text
+library(stringdist)
 
 ques_matrix = function(all_text){
         
@@ -117,29 +119,20 @@ ques_matrix = function(all_text){
 }
 
 
-library(wordcloud)
-library(wordcloud2)
-library(tm)
 
-#Word Cloud Function
-wc = function(text)
-{
-        
-        corpus = Corpus(VectorSource(text))
-        
-        #Remove Stopwords and our predefined words
-        corpus = tm_map(corpus, removeWords, c('i','its','it','us','use','want',
-                                               'added','used','using','will','yes','say',
-                                               'can','take','one',stopwords('english')))
-        
-        #remove unnecesary spaces
-        corpus = tm_map(corpus, stripWhitespace)
-        
-        #Word cloud
-        w = wordcloud(corpus, max.words = 80, scale=c(6, 1), colors=brewer.pal(8, "Dark2"))
-        
-        return(w)
-        
+#Plot Functions
+line = function(dat,X,Y,title,nameX,nameY){
+        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
+                geom_line(aes(color = 'red' ), stat='summary',fun.y=median) +
+                labs(x = nameX , y = nameY) + ggtitle(title)
+        return(l)
+}
+
+line2 = function(dat,X,Y,title,nameX,nameY){
+        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
+                geom_line(aes(color = is_duplicate ), stat='summary',fun.y=median) +
+                labs(x = nameX , y = nameY) + ggtitle(title)
+        return(l)
 }
 
 
@@ -148,6 +141,44 @@ wc = function(text)
 
 text_process = preprocess(data[,4:5])
 text_process$is_duplicate = data$is_duplicate
+
+#Replacing missing values with NA
+text_process = data.frame(apply(text_process, 2, function(x) gsub("^$|^ $", NA, x)))
+sum(is.na(text_process))
+
+#Store Values in text_process frame
+# Missingtext_process = text_process.frame(varaibles = colnames(text_process), 
+#                          MissingInfo = apply(text_process,2,function(x)sum(is.na(x))))
+
+#Removing incomplete observations
+text_process = text_process[complete.cases(text_process),]
+str(text_process)
+
+
+#Converting variables to their respective classes
+text_process$question1 = as.character(text_process$question1)
+text_process$question2 = as.character(text_process$question2)
+
+t_matrix = ques_matrix(text_process[,1:2])
+
+#Combining the performed methods to rest of the data
+text_process = cbind(text_process,t_matrix)
+
+# data = text_process
+str(text_process)
+summary(text_process)
+
+
+
+#Checking for multicolinearity
+format(cor(t_matrix),digits = 2)
+library(usdm)
+vif(as.data.frame(t_matrix))
+
+vifcor(t_matrix[,1:11], th=0.95)
+
+
+
 #Observations
 {
 
@@ -180,31 +211,11 @@ sum(text_process$is_duplicate==1 & text_process$diff_length>10)/nrow(text_proces
 
 }
 
-
-library(ggplot2)
-library(ggthemes)
-library(gridExtra)
-
-#Plot Functions
-line = function(dat,X,Y,title,nameX,nameY){
-        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
-                geom_line(aes(color = 'red' ), stat='summary',fun.y=median) +
-                labs(x = nameX , y = nameY) + ggtitle(title)
-        return(l)
-}
-
-line2 = function(dat,X,Y,title,nameX,nameY){
-        l =  ggplot(aes_string(x=X,y=Y), data = dat) +
-                geom_line(aes(color = is_duplicate ), stat='summary',fun.y=median) +
-                labs(x = nameX , y = nameY) + ggtitle(title)
-        return(l)
-}
-
-
-
 #All Plots
 {
-        
+        library(gridExtra)
+        library(ggplot2)
+        library(ggthemes)
         library(psych)
         multi.hist(text_process[,6:14], main = NA, dcol = c("blue", "red"),
                    dlty = c("solid", "solid"), bcol = "grey95")
@@ -267,43 +278,42 @@ line2 = function(dat,X,Y,title,nameX,nameY){
         
 }
 
-#Replacing missing values with NA
-text_process = data.frame(apply(text_process, 2, function(x) gsub("^$|^ $", NA, x)))
-sum(is.na(text_process))
-
-#Store Values in text_process frame
-# Missingtext_process = text_process.frame(varaibles = colnames(text_process), 
-#                          MissingInfo = apply(text_process,2,function(x)sum(is.na(x))))
-
-#Removing incomplete observations
-text_process = text_process[complete.cases(text_process),]
-str(text_process)
-
-
-#Converting variables to their respective classes
-text_process$question1 = as.character(text_process$question1)
-text_process$question2 = as.character(text_process$question2)
-
-t_matrix = ques_matrix(text_process[,1:2])
-
-#Combining the performed methods to rest of the data
-text_process = cbind(text_process,t_matrix)
-
-# data = text_process
-str(text_process)
-summary(text_process)
-
-
-
-#Checking for multicolinearity
-format(cor(t_matrix),digits = 2)
-library(usdm)
-vif(as.data.frame(t_matrix))
-
-vifcor(t_matrix[,1:11], th=0.95)
-
-
 #Word Cloud
+#Word Cloud Function
+
+library(wordcloud)
+library(wordcloud2)
+library(tm)
+
+wc = function(text)
+{
+        
+        corpus = Corpus(VectorSource(text))
+        
+        #Remove Stopwords and our predefined words
+        corpus = tm_map(corpus, removeWords, c('i','its','it','us','use','want',
+                                               'added','used','using','will','yes','say',
+                                               'can','take','one',stopwords('english')))
+        
+        #remove unnecesary spaces
+        corpus = tm_map(corpus, stripWhitespace)
+        
+        
+        library(RWeka)
+        BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 3))
+        # ... other tokenizers
+        tok <- BigramTokenizer(corpus)
+        
+        tdmgram <- TermDocumentMatrix(corpus, control = list(tokenize = tok))
+        #... create wordcloud
+        #Word cloud
+        
+        
+        w = wordcloud(tok, max.words = 50, scale=c(6, 1), colors=brewer.pal(8, "Dark2"))
+        
+        return(w)
+        
+}
 
 wc(text_process[,1])
 wc(text_process[,2])
@@ -322,7 +332,6 @@ test = text_process[!(1:nrow(text_process)) %in% as.numeric(row.names(train)), ]
 #Decision tree using C50 for classification
 #cannot used for regression
 library(C50)
-
 ruleModel = C5.0(is_duplicate ~ diff_length + dist + jw_meth +
                          cosine_meth + simi + lcs + jaccard, data = train)
 summary(ruleModel)
@@ -344,7 +353,6 @@ load("DT.rda")
 
 ##Decision tree using rpart for classification
 library(rpart)
-
 fit = rpart(is_duplicate ~ diff_length + dist + jw_meth +
                     cosine_meth + simi + lcs + jaccard, data = train, method = "class")
 pred = predict(fit, test[,-3], type = "class")
@@ -355,8 +363,6 @@ confusionMatrix(xtab)
 
 
 #Random Forest Model
-library(randomForest)
-
 rf_model <- randomForest(factor(is_duplicate) ~ diff_length + dist + jw_meth +
                                  cosine_meth + simi + lcs +jaccard, data = train, 
                          importance = TRUE ,  ntree = 100)
@@ -524,4 +530,4 @@ write.csv(untrained_test, file = 'knn_solution.csv',row.names = F)
 rm(importance,rankImportance,xtab,accuracy,Conf_matrix,fit,i,data)
 save.image("untrained_test")
 load("untrained_test")
- #
+ 
